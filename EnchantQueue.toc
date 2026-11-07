@@ -4,6 +4,7 @@
 ## Author: Paul Wilson
 ## Version: @project-version@
 ## X-License: MIT
+## X-Curse-Project-ID: 1789836
 ## SavedVariablesPerCharacter: EnchantQueueDB
 
 Queue.lua
