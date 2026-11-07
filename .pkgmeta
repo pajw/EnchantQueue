@@ -1,0 +1,6 @@
+package-as: EnchantQueue
+
+ignore:
+  - tests
+  - README.md
+  - LICENSE

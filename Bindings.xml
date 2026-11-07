@@ -1,0 +1,3 @@
+<Bindings>
+	<Binding name="CLICK EnchantQueueNextButton:LeftButton" header="ENCHANTQUEUE" category="ADDONS"/>
+</Bindings>

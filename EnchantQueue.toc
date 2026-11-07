@@ -1,0 +1,13 @@
+## Interface: 16001
+## Title: Enchant Queue
+## Notes: Queue several enchants on one item, then cast them one key press at a time.
+## Author: Paul Wilson
+## Version: @project-version@
+## X-License: MIT
+## SavedVariablesPerCharacter: EnchantQueueDB
+
+Queue.lua
+Target.lua
+Cast.lua
+UI.lua
+Core.lua
