@@ -1,5 +1,7 @@
 # Enchant Queue
 
+<img src="media/logo.png" width="128" alt="Enchant Queue logo">
+
 A World of Warcraft: Forever addon. Queue several enchants on one item, then apply them one key press at a time.
 
 Built for levelling Enchanting: "Inferior Stamina ×10 on these bracers" becomes ten taps of a key, not ten rounds of select recipe → pick target → click Enchant → confirm.

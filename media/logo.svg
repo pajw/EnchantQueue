@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="68%" cy="48%" r="75%">
+      <stop offset="0" stop-color="#4a2a8c"/>
+      <stop offset="0.55" stop-color="#22134a"/>
+      <stop offset="1" stop-color="#120a26"/>
+    </radialGradient>
+    <radialGradient id="star" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.35" stop-color="#e6dcff"/>
+      <stop offset="1" stop-color="#9d7bff"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#b79bff" stop-opacity="0.75"/>
+      <stop offset="0.5" stop-color="#7a4dff" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#7a4dff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <path id="spark" d="M0,-1 C0.12,-0.12 0.12,-0.12 1,0 C0.12,0.12 0.12,0.12 0,1 C-0.12,0.12 -0.12,0.12 -1,0 C-0.12,-0.12 -0.12,-0.12 0,-1 Z"/>
+  </defs>
+
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <rect x="10" y="10" width="492" height="492" rx="88" fill="none" stroke="#8b6cff" stroke-opacity="0.35" stroke-width="4"/>
+
+  <!-- queue slots, back to front -->
+  <g stroke-width="5">
+    <rect x="54" y="300" width="190" height="64" rx="18" fill="#1d1240" stroke="#6b52c9" stroke-opacity="0.55"/>
+    <rect x="54" y="224" width="190" height="64" rx="18" fill="#251652" stroke="#7d62e6" stroke-opacity="0.8"/>
+    <rect x="54" y="148" width="190" height="64" rx="18" fill="#2f1c66" stroke="#a48bff"/>
+  </g>
+  <g fill="#e6dcff">
+    <use href="#spark" transform="translate(94 332) scale(20)" opacity="0.45"/>
+    <use href="#spark" transform="translate(94 256) scale(20)" opacity="0.7"/>
+    <use href="#spark" transform="translate(94 180) scale(20)" filter="url(#glow)"/>
+  </g>
+  <g fill="#a48bff">
+    <rect x="128" y="326" width="92" height="12" rx="6" opacity="0.35"/>
+    <rect x="128" y="250" width="92" height="12" rx="6" opacity="0.6"/>
+    <rect x="128" y="174" width="92" height="12" rx="6"/>
+  </g>
+
+  <!-- next chevrons -->
+  <g fill="none" stroke="#c9b8ff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M266 156 l22 24 l-22 24" opacity="0.55"/>
+    <path d="M296 156 l22 24 l-22 24"/>
+  </g>
+
+  <!-- the enchant -->
+  <circle cx="390" cy="246" r="120" fill="url(#halo)"/>
+  <use href="#spark" transform="translate(390 246) scale(96)" fill="url(#star)" filter="url(#glow)"/>
+  <use href="#spark" transform="translate(442 140) scale(22)" fill="#e6dcff" filter="url(#glow)"/>
+  <use href="#spark" transform="translate(330 372) scale(14)" fill="#c9b8ff"/>
+  <use href="#spark" transform="translate(452 352) scale(10)" fill="#c9b8ff" opacity="0.8"/>
+</svg>
