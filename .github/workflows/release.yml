@@ -2,7 +2,8 @@ name: Release
 
 # Two ways to release:
 # - Bump VERSION and push to main. This job tags v<VERSION> on that commit, pushes the tag,
-#   then packages and publishes. If the tag already exists it does nothing.
+#   then packages and publishes. If that version is already released it does nothing;
+#   if it's tagged but unreleased (an earlier run failed), it packages the tagged commit.
 # - Push a v* tag by hand (kept for manual releases).
 # Publishes a GitHub Release always; CurseForge / Wago once their secrets are set.
 # Tags pushed with GITHUB_TOKEN don't trigger workflows, so the tag push here doesn't
@@ -10,7 +11,9 @@ name: Release
 on:
   push:
     branches: [main]
-    paths: [VERSION] # not applied to tag pushes
+    # Not applied to tag pushes. A workflow change re-runs it too, so a fix to this file
+    # finishes a release that failed after tagging.
+    paths: [VERSION, .github/workflows/release.yml]
     tags: ["v*"]
 
 permissions:
@@ -38,6 +41,8 @@ jobs:
       - name: Tag from VERSION
         id: tag
         if: github.ref_type == 'branch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           version=$(tr -d '[:space:]' < VERSION)
           if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
@@ -46,19 +51,35 @@ jobs:
           fi
           tag="v$version"
           if git ls-remote --exit-code --tags origin "refs/tags/$tag" > /dev/null; then
-            echo "Tag $tag already exists; nothing to release."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
+            if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" > /dev/null 2>&1; then
+              echo "$tag is already released; nothing to do."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            # Tagged by an earlier run that failed before publishing: build that tag now.
+            echo "$tag exists but has no release; packaging the tagged commit."
+            git checkout -q "$tag"
+            echo "tag=$tag" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$tag" -m "Enchant Queue $version"
           git push origin "$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "Tagged $(git rev-parse --short HEAD) as $tag"
 
-      - uses: BigWigsMods/packager@v2
+      # BigWigs packager v2, run as a script rather than as the action: on a branch push
+      # the action sees the tag we just made on HEAD, assumes a tag-push run will follow,
+      # and skips ("Found future tag"). Pointing GITHUB_REF at the tag makes this the tag build.
+      - name: Package and publish
         if: steps.tag.outputs.skip != 'true'
         env:
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/BigWigsMods/packager/v2/release.sh -o "$RUNNER_TEMP/release.sh"
+          if [[ "$GITHUB_REF_TYPE" == branch ]]; then export GITHUB_REF="refs/tags/$TAG"; fi
+          bash "$RUNNER_TEMP/release.sh"

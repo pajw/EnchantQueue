@@ -55,7 +55,8 @@ A World of Warcraft: Forever addon (Lua 5.1, no build step). It queues several e
 
 - Bump `VERSION` and push to `main`. That's the whole release.
   - `.github/workflows/release.yml` runs the tests, creates and pushes tag `v<VERSION>` with `GITHUB_TOKEN`, then runs the packager in the same job.
-  - If the tag already exists, the job exits without building.
+  - If `v<VERSION>` already has a GitHub Release, the job does nothing. If it's tagged but has no release (an earlier run failed after tagging), the job packages the tagged commit. Pushing a fix to `release.yml` re-runs it.
+  - It runs the packager's `release.sh` directly with `GITHUB_REF` set to the tag. The `BigWigsMods/packager@v2` action would skip with "Found future tag" on a branch push.
   - The `.toc` keeps `@project-version@`; the packager fills it in.
 - Only bump `VERSION` once the user has approved the build in game.
 - Check the result:
