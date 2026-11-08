@@ -7,3 +7,4 @@ ignore:
   - media
   - CLAUDE.md
   - docs
+  - VERSION

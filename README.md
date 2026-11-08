@@ -52,4 +52,6 @@ lua5.1 tests/smoke_test.lua
 
 The smoke test loads the whole addon against a stubbed WoW API. It catches wiring bugs, not taint or real API behaviour.
 
-Releases are built by [BigWigs packager](https://github.com/BigWigsMods/packager): push a `v*` tag and the zip is attached to a GitHub Release, and uploaded to CurseForge and Wago when those are configured.
+To release, bump `VERSION` (for example to `0.4.1`) and push to `main`. The Release workflow runs the tests, tags the commit `v0.4.1`, and builds it with [BigWigs packager](https://github.com/BigWigsMods/packager). The zip is attached to a GitHub Release, and uploaded to CurseForge (and Wago once it's configured). If the tag already exists, the workflow does nothing.
+
+Pushing a `v*` tag by hand still works too.

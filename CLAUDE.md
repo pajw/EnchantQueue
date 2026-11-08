@@ -51,11 +51,22 @@ A World of Warcraft: Forever addon (Lua 5.1, no build step). It queues several e
   4. **Fallback: send a zip.** Use this if the folder isn't listed, is offline, or the request is refused. Zip the folder, send it with SendUserFile, and say why the direct install didn't work.
   5. Either way, ask for screenshots.
 
+## Releasing
+
+- Bump `VERSION` and push to `main`. That's the whole release.
+  - `.github/workflows/release.yml` runs the tests, creates and pushes tag `v<VERSION>` with `GITHUB_TOKEN`, then runs the packager in the same job.
+  - If the tag already exists, the job exits without building.
+  - The `.toc` keeps `@project-version@`; the packager fills it in.
+- Only bump `VERSION` once the user has approved the build in game.
+- Check the result:
+  - `gh run list --workflow Release`, then `gh run view <id> --log` (look for CurseForge `Success!`).
+  - `gh api repos/pajw/enchantqueue/releases/tags/v<VERSION>` for the GitHub Release and its zip.
+
 ## Environment limits (cloud session)
 
 - You can push commits to `main`.
 - You **cannot**:
-  - push tags (the proxy returns 403)
+  - push tags (the proxy returns 403). The Release workflow tags for you; see Releasing.
   - create repositories
   - read or set Actions secrets
   - use GitHub GraphQL. `gh release view` and `gh pr view` fail; use `gh api repos/pajw/enchantqueue/...` (REST) instead.

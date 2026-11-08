@@ -1,14 +1,24 @@
 name: Release
 
-# Push a tag like v0.3.0 to build the zip and publish it.
-# GitHub Release always; CurseForge / Wago once their secrets and project IDs are set.
+# Two ways to release:
+# - Bump VERSION and push to main. This job tags v<VERSION> on that commit, pushes the tag,
+#   then packages and publishes. If the tag already exists it does nothing.
+# - Push a v* tag by hand (kept for manual releases).
+# Publishes a GitHub Release always; CurseForge / Wago once their secrets are set.
+# Tags pushed with GITHUB_TOKEN don't trigger workflows, so the tag push here doesn't
+# start a second run.
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
+    paths: [VERSION] # not applied to tag pushes
+    tags: ["v*"]
 
 permissions:
   contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -17,7 +27,37 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Run tests
+        run: |
+          sudo apt-get install -y lua5.1
+          for f in *.lua; do luac5.1 -p "$f"; done
+          lua5.1 tests/queue_test.lua
+          lua5.1 tests/smoke_test.lua
+
+      - name: Tag from VERSION
+        id: tag
+        if: github.ref_type == 'branch'
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::VERSION contains '$version', which isn't a version like 0.4.0"
+            exit 1
+          fi
+          tag="v$version"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" > /dev/null; then
+            echo "Tag $tag already exists; nothing to release."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$tag" -m "Enchant Queue $version"
+          git push origin "$tag"
+          echo "Tagged $(git rev-parse --short HEAD) as $tag"
+
       - uses: BigWigsMods/packager@v2
+        if: steps.tag.outputs.skip != 'true'
         env:
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
