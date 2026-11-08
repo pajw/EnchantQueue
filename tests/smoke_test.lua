@@ -195,6 +195,15 @@ check(panel.point[2] == ProfessionsFrame and panel.point[3] == "TOPRIGHT" and pa
 	"docked right of the profession tabs, top-aligned")
 check(panel.height == 700, "panel height matches the Professions window")
 check(ns.UI.dock.method == "profession tabs", "tabs found by name")
+local q = EnchantQueueDB.queue
+for _ = 1, 30 do q.entries[#q.entries + 1] = { recipeID = 7418, name = "Enchant Bracer - Minor Health", remaining = 2 } end
+ns.Refresh()
+local row1, e1 = ns.UI.rows[1], q.entries[1]
+check(row1.shown and row1.text.text == e1.name and row1.count.text == "x" .. e1.remaining, "row shows name and count separately")
+local fits = math.floor((700 - (66 + 128) - 84) / 22)
+check(ns.UI.rows[fits].shown and not ns.UI.rows[fits + 1].shown, "rows fill the docked height (" .. fits .. ")")
+for i = #q.entries, 2, -1 do q.entries[i] = nil end
+ns.Refresh()
 
 ProfessionsFrame.Professions1Tab.shown, ProfessionsFrame.Professions2Tab.shown = false, false
 local strip = tab(598, 670); ProfessionsFrame.children[#ProfessionsFrame.children + 1] = strip

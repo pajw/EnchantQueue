@@ -4,13 +4,32 @@ local _, ns = ...
 local UI = {}
 ns.UI = UI
 
-local MAX_ROWS = 8
-local panel, targetSlot, targetText, selectedText, countBox, addButton, nextButton, clearButton, statusText, moreText
+local MAX_ROWS = 24           -- rows built; how many show depends on the panel's height
+local ROW_H = 22
+local PANEL_W, PANEL_H = 290, 360
+local BOTTOM_RESERVE = 84     -- Next / Clear, the status line and "+N more"
+local panel, targetSlot, targetText, targetLabel, selectedText, countBox, addButton, nextButton, clearButton, statusText, moreText
 local rows = {}
+UI.rows = rows -- for tests
+local top = 30                -- content top: below the title bar, or below the portrait
+
+local function recipeInfo(recipeID)
+	return recipeID and C_TradeSkillUI.GetRecipeInfo(recipeID)
+end
 
 local function recipeName(recipeID)
-	local info = recipeID and C_TradeSkillUI.GetRecipeInfo(recipeID)
+	local info = recipeInfo(recipeID)
 	return info and info.name
+end
+
+local function itemQualityColor(link)
+	if not link then return nil end
+	local q = C_Item and C_Item.GetItemQualityByID and C_Item.GetItemQualityByID(link)
+	if not q and GetItemInfo then q = select(3, GetItemInfo(link)) end
+	if not q then return nil end
+	if C_Item and C_Item.GetItemQualityColor then return C_Item.GetItemQualityColor(q) end
+	local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q]
+	if c then return c.r, c.g, c.b end
 end
 
 local function setTargetFromCursor()
@@ -22,16 +41,29 @@ local function setTargetFromCursor()
 	end
 end
 
+local function label(text, y)
+	local fs = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall") -- Blizzard's gold "Reagents:" style
+	fs:SetPoint("TOPLEFT", 14, -y)
+	fs:SetText(text)
+	return fs
+end
+
 local function buildTargetSlot()
+	targetLabel = label("Item to enchant", top)
+
 	targetSlot = CreateFrame("Button", nil, panel)
 	targetSlot:SetSize(40, 40)
-	targetSlot:SetPoint("TOPLEFT", 14, -30)
+	targetSlot:SetPoint("TOPLEFT", 14, -(top + 14))
 	targetSlot:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	targetSlot.empty = targetSlot:CreateTexture(nil, "BACKGROUND")
+	targetSlot.empty:SetTexture("Interface\\PaperDoll\\UI-Backpack-EmptySlot")
+	targetSlot.empty:SetAllPoints()
 	targetSlot.icon = targetSlot:CreateTexture(nil, "ARTWORK")
 	targetSlot.icon:SetAllPoints()
 	targetSlot.border = targetSlot:CreateTexture(nil, "OVERLAY")
-	targetSlot.border:SetAtlas("bags-glow-white")
+	targetSlot.border:SetTexture("Interface\\Common\\WhiteIconFrame")
 	targetSlot.border:SetAllPoints()
+	targetSlot:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
 	targetSlot:SetScript("OnReceiveDrag", setTargetFromCursor)
 	targetSlot:SetScript("OnClick", function(_, mouse)
 		if mouse == "RightButton" then ns.SetTarget(nil) else setTargetFromCursor() end
@@ -51,19 +83,20 @@ local function buildTargetSlot()
 
 	targetText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 	targetText:SetPoint("LEFT", targetSlot, "RIGHT", 8, 0)
-	targetText:SetPoint("RIGHT", panel, "RIGHT", -12, 0)
+	targetText:SetPoint("RIGHT", panel, "RIGHT", -14, 0)
 	targetText:SetJustifyH("LEFT")
 end
 
 local function buildAddRow()
-	selectedText = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-	selectedText:SetPoint("TOPLEFT", targetSlot, "BOTTOMLEFT", 0, -10)
-	selectedText:SetPoint("RIGHT", panel, "RIGHT", -12, 0)
+	selectedText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	selectedText:SetPoint("TOPLEFT", 14, -(top + 62))
+	selectedText:SetPoint("RIGHT", panel, "RIGHT", -14, 0)
 	selectedText:SetJustifyH("LEFT")
+	selectedText:SetWordWrap(false)
 
 	countBox = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
 	countBox:SetSize(40, 20)
-	countBox:SetPoint("TOPLEFT", selectedText, "BOTTOMLEFT", 6, -6)
+	countBox:SetPoint("TOPLEFT", 20, -(top + 80))
 	countBox:SetAutoFocus(false)
 	countBox:SetNumeric(true)
 	countBox:SetMaxLetters(3)
@@ -79,29 +112,72 @@ local function buildAddRow()
 	end)
 end
 
+local ROWS_TOP -- set in buildRows
+
 local function buildRows()
+	label("Queue", top + 112)
+	ROWS_TOP = top + 128
 	for i = 1, MAX_ROWS do
-		local row = CreateFrame("Frame", nil, panel)
-		row:SetSize(232, 20)
-		row:SetPoint("TOPLEFT", countBox, "BOTTOMLEFT", -6, -8 - (i - 1) * 20)
-		row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-		row.text:SetPoint("LEFT")
-		row.text:SetPoint("RIGHT", -24, 0)
-		row.text:SetJustifyH("LEFT")
-		row.remove = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-		row.remove:SetSize(20, 18)
-		row.remove:SetPoint("RIGHT")
-		row.remove:SetText("x")
+		local row = CreateFrame("Button", nil, panel)
+		row:SetHeight(ROW_H)
+		row:SetPoint("TOPLEFT", 10, -(ROWS_TOP + (i - 1) * ROW_H))
+		row:SetPoint("RIGHT", panel, "RIGHT", -10, 0)
+		row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+		row.icon = row:CreateTexture(nil, "ARTWORK")
+		row.icon:SetSize(18, 18)
+		row.icon:SetPoint("LEFT", 2, 0)
+		row.remove = CreateFrame("Button", nil, row)
+		row.remove:SetSize(16, 16)
+		row.remove:SetPoint("RIGHT", -2, 0)
+		row.remove:SetNormalTexture("Interface\\Buttons\\UI-GroupLoot-Pass-Up")
+		row.remove:SetPushedTexture("Interface\\Buttons\\UI-GroupLoot-Pass-Down")
+		row.remove:SetHighlightTexture("Interface\\Buttons\\UI-GroupLoot-Pass-Highlight", "ADD")
 		row.remove:SetScript("OnClick", function() ns.RemoveEntry(i) end)
+		row.remove:SetScript("OnEnter", function(self)
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetText("Remove from queue")
+			GameTooltip:Show()
+		end)
+		row.remove:SetScript("OnLeave", GameTooltip_Hide)
+		row.count = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+		row.count:SetPoint("RIGHT", row.remove, "LEFT", -6, 0)
+		row.count:SetJustifyH("RIGHT")
+		row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		row.text:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
+		row.text:SetPoint("RIGHT", row.count, "LEFT", -6, 0)
+		row.text:SetJustifyH("LEFT")
+		row.text:SetWordWrap(false)
 		rows[i] = row
 	end
 	moreText = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-	moreText:SetPoint("TOPLEFT", rows[MAX_ROWS], "BOTTOMLEFT", 0, -2)
+end
+
+-- Blizzard's Professions window uses the portrait frame; fall back to the plain one if
+-- this client doesn't have it.
+local function createPanel()
+	local ok, f = pcall(CreateFrame, "Frame", "EnchantQueueFrame", UIParent, "ButtonFrameTemplate")
+	if ok and f then
+		if f.SetPortraitToAsset then f:SetPortraitToAsset("Interface\\Icons\\Trade_Engraving")
+		elseif type(f.portrait) == "table" and SetPortraitToTexture then SetPortraitToTexture(f.portrait, "Interface\\Icons\\Trade_Engraving") end
+		if f.SetTitle then f:SetTitle("Enchant Queue") end
+		if ButtonFrameTemplate_HideButtonBar then pcall(ButtonFrameTemplate_HideButtonBar, f) end
+		if type(f.Inset) == "table" then -- after HideButtonBar, which re-anchors it
+			f.Inset:ClearAllPoints()
+			f.Inset:SetPoint("TOPLEFT", 4, -60)
+			f.Inset:SetPoint("BOTTOMRIGHT", -6, 60)
+		end
+		return f, 66, "portrait"
+	end
+	f = CreateFrame("Frame", "EnchantQueueFrame", UIParent, "BasicFrameTemplateWithInset")
+	f.title = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	f.title:SetPoint("TOP", 0, -5)
+	f.title:SetText("Enchant Queue")
+	return f, 30, "basic"
 end
 
 function UI.Init()
-	panel = CreateFrame("Frame", "EnchantQueueFrame", UIParent, "BasicFrameTemplateWithInset")
-	panel:SetSize(260, 360)
+	panel, top, UI.chrome = createPanel()
+	panel:SetSize(PANEL_W, PANEL_H)
 	panel:SetPoint("CENTER")
 	panel:SetMovable(true)
 	panel:EnableMouse(true)
@@ -117,25 +193,22 @@ function UI.Init()
 		panel.CloseButton:HookScript("OnClick", function() ns.db.hidden = true; UI.UpdateToggleButton() end)
 	end
 
-	panel.title = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	panel.title:SetPoint("TOP", 0, -5)
-
 	buildTargetSlot()
 	buildAddRow()
 	buildRows()
 
 	nextButton = ns.Cast.Init(panel)
-	nextButton:SetPoint("BOTTOMLEFT", 12, 34)
+	nextButton:SetPoint("BOTTOMLEFT", 12, 32)
 
 	clearButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-	clearButton:SetSize(80, 24)
+	clearButton:SetSize(90, 24)
 	clearButton:SetPoint("LEFT", nextButton, "RIGHT", 8, 0)
 	clearButton:SetText("Clear")
 	clearButton:SetScript("OnClick", function() ns.ClearQueue() end)
 
-	statusText = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-	statusText:SetPoint("BOTTOMLEFT", 14, 10)
-	statusText:SetPoint("BOTTOMRIGHT", -14, 10)
+	statusText = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall") -- grey helper text
+	statusText:SetPoint("BOTTOMLEFT", 14, 8)
+	statusText:SetPoint("BOTTOMRIGHT", -14, 8)
 	statusText:SetJustifyH("LEFT")
 	statusText:SetWordWrap(true)
 end
@@ -154,36 +227,52 @@ function UI.SetStatus(msg)
 	if statusText then statusText:SetText(msg or "") end
 end
 
+-- How many rows fit between the queue heading and the buttons at the bottom.
+local function visibleRowCount()
+	local h = panel:GetHeight() or PANEL_H
+	return math.max(1, math.min(MAX_ROWS, math.floor((h - ROWS_TOP - BOTTOM_RESERVE) / ROW_H)))
+end
+
 function UI.Render(q, located)
 	if not panel or not ns.db then return end
-	panel.title:SetText("Enchant Queue")
 
 	local t = q.target
 	if t then
 		targetSlot.icon:SetTexture(t.icon)
+		targetSlot.empty:Hide()
+		local r, g, b = itemQualityColor(t.link)
+		targetSlot.border:SetVertexColor(r or 1, g or 1, b or 1)
+		targetSlot.border:Show()
 		targetText:SetText((t.link or "?") .. (located and "" or "\n|cffff4040Item not found|r"))
 	else
 		targetSlot.icon:SetTexture(nil)
-		targetText:SetText("|cff888888Drop the item to enchant here|r")
+		targetSlot.empty:Show()
+		targetSlot.border:Hide()
+		targetText:SetText("|cff888888Drop an item here|r")
 	end
 
 	local selected = ns.GetSelectedRecipeID()
-	selectedText:SetText("Selected: " .. (recipeName(selected) or "|cff888888pick an enchant in the Professions window|r"))
+	selectedText:SetText("|cffffd100Selected:|r " .. (recipeName(selected) or "|cff888888pick an enchant on the left|r"))
 	addButton:SetEnabled(selected ~= nil)
 
+	local shown = visibleRowCount()
 	for i, row in ipairs(rows) do
-		local e = q.entries[i]
+		local e = i <= shown and q.entries[i]
 		if e then
-			row.text:SetText(i .. ". " .. e.name .. "  |cffffd100x" .. e.remaining .. "|r")
+			local info = recipeInfo(e.recipeID)
+			row.icon:SetTexture(info and info.icon or "Interface\\Icons\\Trade_Engraving")
+			row.text:SetText(e.name)
+			row.count:SetText("x" .. e.remaining)
 			row:Show()
 		else
 			row:Hide()
 		end
 	end
-	local extra = #q.entries - MAX_ROWS
+	local extra = #q.entries - shown
+	moreText:ClearAllPoints()
+	moreText:SetPoint("TOPLEFT", 14, -(ROWS_TOP + shown * ROW_H + 2))
 	moreText:SetText(extra > 0 and ("+" .. extra .. " more") or "")
 end
-
 
 -- Docking: Forever hangs a vertical strip of profession tabs off the Professions window's
 -- right edge (ProfessionsFrame.Professions<N>Tab, seen with /fstack). Sit right of them.
@@ -314,7 +403,9 @@ function UI.ShowDocked()
 	UI.UpdateToggleButton()
 	if panel:IsShown() then ns.Refresh() end
 	-- The tab strip can lay out a frame after TRADE_SKILL_SHOW; measure again then.
-	if C_Timer and C_Timer.After then C_Timer.After(0, function() if toggleButton:IsShown() then dock() end end) end
+	if C_Timer and C_Timer.After then C_Timer.After(0, function()
+		if toggleButton:IsShown() and not InCombatLockdown() then dock(); if panel:IsShown() then ns.Refresh() end end
+	end) end
 end
 
 function UI.Hide()
