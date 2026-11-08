@@ -44,7 +44,12 @@ A World of Warcraft: Forever addon (Lua 5.1, no build step). It queues several e
 - Nothing can run WoW here. To get the addon to the user for testing:
   1. Copy the `.lua`, `.toc` and `Bindings.xml` files to a scratch folder named `EnchantQueue`.
   2. Replace `@project-version@` in the copied `.toc` with the version.
-  3. Zip it, send it with SendUserFile, and ask for screenshots.
+  3. **Preferred: install it directly.** The user wants this route. Call `list_computer_folders`.
+     - If their AddOns folder (or its parent `_forever_`) is listed and online, attach it with `request_computer_folder`.
+     - Copy the built folder to `AddOns/EnchantQueue/`, replacing the old one.
+     - Tell the user to type `/reload`. A `.toc` change or a new file needs a full game restart instead.
+  4. **Fallback: send a zip.** Use this if the folder isn't listed, is offline, or the request is refused. Zip the folder, send it with SendUserFile, and say why the direct install didn't work.
+  5. Either way, ask for screenshots.
 
 ## Environment limits (cloud session)
 
