@@ -8,7 +8,7 @@ Built for levelling Enchanting: "Inferior Stamina ×10 on these bracers" becomes
 
 ## Usage
 
-1. Open your Enchanting window. The Enchant Queue panel docks beside it.
+1. Open your Enchanting window. The Enchant Queue panel docks beside it. To keep it out of the way, close it with its **X** or the note icon under the profession tabs. It stays closed until you click the icon (or type `/eqq`) again.
 2. Drag the item to enchant onto the panel's slot (or Alt-click it in your bags). It can be in your bags or equipped.
 3. Select an enchant in the Enchanting window, type a count and click **+ Queue**. Repeat for more enchants.
 4. Press **Next**. Each press fills in the Enchanting window and clicks Enchant for you. If the item already has an enchant, the button changes to **Confirm replace**, and the next press clicks Yes.
@@ -25,7 +25,7 @@ Then scroll gently to work through the queue. Presses that land while an enchant
 
 | Command | |
 |---|---|
-| `/eqq` (or `/enchantqueue`) | Show or hide the panel |
+| `/eqq` (or `/enchantqueue`) | Show or hide the panel (remembered next time Enchanting opens) |
 | `/eqq clear` | Empty the queue |
 | `/eqq status` | Print diagnostics (include this in bug reports) |
 | `/eqq debug` | Toggle detailed chat output |

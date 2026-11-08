@@ -29,6 +29,7 @@ local function newFrame(kind, name)
 		GetEffectiveScale = function(self) return rawget(self, "scale") or 1 end,
 		GetLeft = function(self) return rawget(self, "left") end,
 		GetRight = function(self) return rawget(self, "right") end,
+		GetBottom = function(self) return rawget(self, "bottom") end,
 		GetHeight = function(self) return rawget(self, "height") end,
 		SetHeight = function(self, h) self.height = h end,
 		SetPoint = function(self, ...) self.point = { ... } end,
@@ -204,6 +205,26 @@ strip.shown = false
 fire("TRADE_SKILL_SHOW")
 check(ns.UI.dock.method:match("^fallback") and panel.point[4] == 64 * 1.25, "fixed offset when nothing is attached")
 ProfessionsFrame.Professions1Tab.shown, ProfessionsFrame.Professions2Tab.shown = true, true
+
+-- Toggle button under the tab strip; the user's open/closed choice sticks.
+ProfessionsFrame.shown = true
+ProfessionsFrame.Professions1Tab.bottom, ProfessionsFrame.Professions2Tab.bottom = 500, 440
+fire("TRADE_SKILL_SHOW")
+local toggle = EnchantQueueToggleButton
+check(toggle and toggle.shown and toggle.point[2] == ProfessionsFrame.Professions2Tab and toggle.point[3] == "BOTTOM",
+	"toggle button sits under the lowest tab")
+toggle:Click()
+check(not panel.shown and EnchantQueueDB.hidden == true, "toggle button hides the panel and remembers")
+fire("TRADE_SKILL_CLOSE")
+fire("TRADE_SKILL_SHOW")
+check(not panel.shown and toggle.shown, "stays closed next time Enchanting opens")
+SlashCmdList.ENCHANTQUEUE("")
+check(panel.shown and EnchantQueueDB.hidden == false and panel.point[2] == ProfessionsFrame, "/eqq shows it again, docked")
+fire("TRADE_SKILL_CLOSE")
+check(not panel.shown and not toggle.shown, "closing Enchanting hides both without changing the choice")
+check(EnchantQueueDB.hidden == false, "choice unchanged by closing Enchanting")
+fire("TRADE_SKILL_SHOW")
+check(panel.shown, "auto-opens again")
 
 InCombatLockdown = function() return true end
 panel.point = nil
