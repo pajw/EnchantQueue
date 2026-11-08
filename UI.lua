@@ -7,7 +7,7 @@ ns.UI = UI
 local MAX_ROWS = 24           -- rows built; how many show depends on the panel's height
 local ROW_H = 22
 local PANEL_W, PANEL_H = 290, 360
-local BOTTOM_RESERVE = 84     -- Next / Clear, the status line and "+N more"
+local BOTTOM_RESERVE = 76     -- button bar, the status line and "+N more"
 local panel, targetSlot, targetText, targetLabel, selectedText, countBox, addButton, nextButton, clearButton, statusText, moreText
 local rows = {}
 UI.rows = rows -- for tests
@@ -164,7 +164,7 @@ local function createPanel()
 		if type(f.Inset) == "table" then -- after HideButtonBar, which re-anchors it
 			f.Inset:ClearAllPoints()
 			f.Inset:SetPoint("TOPLEFT", 4, -60)
-			f.Inset:SetPoint("BOTTOMRIGHT", -6, 60)
+			f.Inset:SetPoint("BOTTOMRIGHT", -6, 30) -- leaves Blizzard's usual button bar
 		end
 		return f, 66, "portrait"
 	end
@@ -197,18 +197,20 @@ function UI.Init()
 	buildAddRow()
 	buildRows()
 
+	-- Next and Clear: equal widths, centred in the button bar.
 	nextButton = ns.Cast.Init(panel)
-	nextButton:SetPoint("BOTTOMLEFT", 12, 32)
+	nextButton:SetSize(120, 22)
+	nextButton:SetPoint("BOTTOMRIGHT", panel, "BOTTOM", -4, 5)
 
 	clearButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-	clearButton:SetSize(90, 24)
-	clearButton:SetPoint("LEFT", nextButton, "RIGHT", 8, 0)
+	clearButton:SetSize(120, 22)
+	clearButton:SetPoint("BOTTOMLEFT", panel, "BOTTOM", 4, 5)
 	clearButton:SetText("Clear")
 	clearButton:SetScript("OnClick", function() ns.ClearQueue() end)
 
 	statusText = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall") -- grey helper text
-	statusText:SetPoint("BOTTOMLEFT", 14, 8)
-	statusText:SetPoint("BOTTOMRIGHT", -14, 8)
+	statusText:SetPoint("BOTTOMLEFT", 14, 36) -- inside the inset, just above the button bar
+	statusText:SetPoint("BOTTOMRIGHT", -14, 36)
 	statusText:SetJustifyH("LEFT")
 	statusText:SetWordWrap(true)
 end
