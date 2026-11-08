@@ -26,6 +26,13 @@ local function newFrame(kind, name)
 		RegisterUnitEvent = function(self, e) rawset(self, "registered", rawget(self, "registered") or {}); self.registered[e] = true end,
 		CreateFontString = function() return newFrame("FontString") end,
 		CreateTexture = function() return newFrame("Texture") end,
+		GetEffectiveScale = function(self) return rawget(self, "scale") or 1 end,
+		GetLeft = function(self) return rawget(self, "left") end,
+		GetRight = function(self) return rawget(self, "right") end,
+		GetHeight = function(self) return rawget(self, "height") end,
+		SetHeight = function(self, h) self.height = h end,
+		SetPoint = function(self, ...) self.point = { ... } end,
+		GetChildren = function(self) return unpack(rawget(self, "children") or {}) end,
 		Click = function(self) if self.scripts.OnClick then self.scripts.OnClick(self, "LeftButton") end end,
 	}
 	setmetatable(f, { __index = function(_, k) return methods[k] or (k:match("^%u") and function() end or nil) end })
@@ -66,10 +73,18 @@ C_TradeSkillUI = {
 staged = {}
 Item = { CreateFromItemLocation = function(_, loc) return { loc = loc } end }
 local createBtn = newFrame("Button")
-ProfessionsFrame = { CraftingPage = {
+-- Window spans x 0..600, scale 1.25; the tab strip hangs off the right edge (600..660).
+ProfessionsFrame = newFrame("Frame")
+ProfessionsFrame.scale, ProfessionsFrame.left, ProfessionsFrame.right, ProfessionsFrame.height = 1.25, 0, 600, 560
+ProfessionsFrame.CraftingPage = {
 	CreateButton = createBtn,
 	SchematicForm = { GetTransaction = function() return { SetEnchantAllocation = function(_, item) staged.loc = item.loc end } end },
-} }
+}
+local function tab(left, right) local t = newFrame("Button"); t.scale, t.left, t.right, t.shown = 1.25, left, right, true; return t end
+ProfessionsFrame.Professions1Tab = tab(598, 650)
+ProfessionsFrame.Professions2Tab = tab(598, 660)
+local nineSlice = tab(0, 600) -- full-width child: must not count as attached
+ProfessionsFrame.children = { nineSlice, ProfessionsFrame.Professions1Tab, ProfessionsFrame.Professions2Tab }
 C_AddOns = { IsAddOnLoaded = function() return false end }
 C_Cursor = {}
 EventRegistry = { RegisterCallback = function() end }
@@ -170,6 +185,31 @@ check(not btn.enabled, "no attribute changes during combat")
 InCombatLockdown = function() return false end
 fire("PLAYER_REGEN_ENABLED")
 check(btn.enabled, "deferred prepare runs when combat ends")
+
+-- Docking: tab strip ends at 660 * 1.25 = 825 screen px, window edge at 750; panel scale 1.
+local panel = EnchantQueueFrame
+fire("TRADE_SKILL_SHOW")
+check(panel.shown, "panel shown when Enchanting opens")
+check(panel.point[2] == ProfessionsFrame and panel.point[3] == "TOPRIGHT" and panel.point[4] == 81 and panel.point[5] == 0,
+	"docked right of the profession tabs, top-aligned")
+check(panel.height == 700, "panel height matches the Professions window")
+check(ns.UI.dock.method == "profession tabs", "tabs found by name")
+
+ProfessionsFrame.Professions1Tab.shown, ProfessionsFrame.Professions2Tab.shown = false, false
+local strip = tab(598, 670); ProfessionsFrame.children[#ProfessionsFrame.children + 1] = strip
+fire("TRADE_SKILL_SHOW")
+check(ns.UI.dock.method == "child scan" and panel.point[4] == 670 * 1.25 - 750 + 6, "falls back to scanning children")
+
+strip.shown = false
+fire("TRADE_SKILL_SHOW")
+check(ns.UI.dock.method:match("^fallback") and panel.point[4] == 64 * 1.25, "fixed offset when nothing is attached")
+ProfessionsFrame.Professions1Tab.shown, ProfessionsFrame.Professions2Tab.shown = true, true
+
+InCombatLockdown = function() return true end
+panel.point = nil
+fire("TRADE_SKILL_SHOW")
+check(panel.point == nil, "no docking in combat")
+InCombatLockdown = function() return false end
 
 SlashCmdList.ENCHANTQUEUE("status")
 SlashCmdList.ENCHANTQUEUE("clear")

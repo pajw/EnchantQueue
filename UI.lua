@@ -184,13 +184,71 @@ function UI.Toggle()
 	if panel:IsShown() then ns.Refresh() end
 end
 
+-- Docking: Forever hangs a vertical strip of profession tabs off the Professions window's
+-- right edge (ProfessionsFrame.Professions<N>Tab, seen with /fstack). Sit right of them.
+local DOCK_GAP = 6        -- px between the rightmost tab and the panel
+local DOCK_FALLBACK = 64  -- px from ProfessionsFrame's right edge when nothing is found
+local MIN_HEIGHT = 360
+UI.dock = { method = "not docked yet" }
+
+-- Right edge in screen pixels, or nil if the frame isn't laid out yet.
+local function screenRight(f)
+	local r = f.GetRight and f:GetRight()
+	return r and r * f:GetEffectiveScale()
+end
+
+-- A frame counts as attached to the right if it's shown and starts at or past
+-- (20 px inside) the window's right edge. Full-width children like NineSlice don't.
+local function attachedRight(f, edge)
+	if type(f) ~= "table" or f == panel or not f.IsShown or not f:IsShown() or not f.GetLeft then return nil end
+	local l, r = f:GetLeft(), f:GetRight()
+	if not l or not r then return nil end
+	local s = f:GetEffectiveScale()
+	if l * s >= edge - 20 * s then return r * s end
+end
+
+-- Screen-pixel offset from ProfessionsFrame's right edge to the panel's left edge.
+local function dockOffset(pf)
+	local edge = screenRight(pf)
+	if not edge then return nil, "fallback (window not laid out)" end
+	local best
+	for i = 1, 12 do
+		local r = attachedRight(pf["Professions" .. i .. "Tab"], edge)
+		if r and (not best or r > best) then best = r end
+	end
+	local method = "profession tabs"
+	if not best and pf.GetChildren then
+		for _, child in ipairs({ pf:GetChildren() }) do
+			local r = attachedRight(child, edge)
+			if r and (not best or r > best) then best = r end
+		end
+		method = "child scan"
+	end
+	if not best then return nil, "fallback (nothing attached)" end
+	return best - edge, method
+end
+
+local function dock()
+	local pf = ProfessionsFrame
+	if not panel or not pf or InCombatLockdown() then return end
+	local ratio = pf:GetEffectiveScale() / panel:GetEffectiveScale()
+	local offset, method = dockOffset(pf)
+	local x = offset and (offset / panel:GetEffectiveScale() + DOCK_GAP) or DOCK_FALLBACK * ratio
+	panel:ClearAllPoints()
+	panel:SetPoint("TOPLEFT", pf, "TOPRIGHT", x, 0)
+	local h = pf:GetHeight()
+	panel:SetHeight(math.max(MIN_HEIGHT, h and h * ratio or 0))
+	UI.dock = { method = method, x = x }
+end
+
 -- Dock beside the Professions window while Enchanting is open.
 function UI.ShowDocked()
 	if not panel or InCombatLockdown() or not ProfessionsFrame then return end
-	panel:ClearAllPoints()
-	panel:SetPoint("TOPLEFT", ProfessionsFrame, "TOPRIGHT", 4, 0)
+	dock()
 	panel:Show()
 	ns.Refresh()
+	-- The tab strip can lay out a frame after TRADE_SKILL_SHOW; measure again then.
+	if C_Timer and C_Timer.After then C_Timer.After(0, function() if panel:IsShown() then dock() end end) end
 end
 
 function UI.Hide()

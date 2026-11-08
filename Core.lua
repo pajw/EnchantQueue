@@ -199,6 +199,8 @@ function ns.PrintStatus()
 	local create = ProfessionsFrame and ProfessionsFrame.CraftingPage and ProfessionsFrame.CraftingPage.CreateButton
 	ns.Print("Create button found", yesno(create ~= nil), create and create.GetDebugName and ("(" .. tostring((create:GetDebugName())) .. ")") or "",
 		"| enchant target slot", yesno(form and form.enchantSlot ~= nil), "shown", yesno(form and form.enchantSlot and form.enchantSlot:IsShown()))
+	local d = UI.dock
+	ns.Print("dock", d.method, d.x and string.format("x %.1f", d.x) or "")
 	ns.Print("old-style TradeSkillFrame", yesno(TradeSkillFrame ~= nil), "| TradeSkillCreateButton", yesno(TradeSkillCreateButton ~= nil))
 	local head = Queue.Head(q)
 	if head then
