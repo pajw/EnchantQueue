@@ -59,6 +59,9 @@ A World of Warcraft: Forever addon (Lua 5.1, no build step). It queues several e
   - It runs the packager's `release.sh` directly with `GITHUB_REF` set to the tag. The `BigWigsMods/packager@v2` action would skip with "Found future tag" on a branch push.
   - The `.toc` keeps `@project-version@`; the packager fills it in.
 - Only bump `VERSION` once the user has approved the build in game.
+- Before bumping, rewrite `CHANGELOG.md` with just this release's notes, under a `## Enchant Queue <VERSION>` heading. Write them for players, not developers.
+  - The packager uploads it as the CurseForge and GitHub changelog (`manual-changelog` in `.pkgmeta`).
+  - The workflow fails before tagging if the heading for `VERSION` is missing.
 - Check the result:
   - `gh run list --workflow Release`, then `gh run view <id> --log` (look for CurseForge `Success!`).
   - `gh api repos/pajw/enchantqueue/releases/tags/v<VERSION>` for the GitHub Release and its zip.

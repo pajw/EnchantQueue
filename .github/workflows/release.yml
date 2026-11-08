@@ -50,6 +50,10 @@ jobs:
             exit 1
           fi
           tag="v$version"
+          if ! grep -q "^## .*\b$version\b" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## ... $version' heading. Write this release's notes first."
+            exit 1
+          fi
           if git ls-remote --exit-code --tags origin "refs/tags/$tag" > /dev/null; then
             if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" > /dev/null 2>&1; then
               echo "$tag is already released; nothing to do."

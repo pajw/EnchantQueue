@@ -52,6 +52,6 @@ lua5.1 tests/smoke_test.lua
 
 The smoke test loads the whole addon against a stubbed WoW API. It catches wiring bugs, not taint or real API behaviour.
 
-To release, bump `VERSION` (for example to `0.4.1`) and push to `main`. The Release workflow runs the tests, tags the commit `v0.4.1`, and builds it with [BigWigs packager](https://github.com/BigWigsMods/packager). The zip is attached to a GitHub Release, and uploaded to CurseForge (and Wago once it's configured). If that version is already released, the workflow does nothing.
+To release, replace `CHANGELOG.md` with the new version's notes (under a `## Enchant Queue 0.4.1` heading), bump `VERSION` to match, and push to `main`. The Release workflow runs the tests, tags the commit `v0.4.1`, and builds it with [BigWigs packager](https://github.com/BigWigsMods/packager). The zip is attached to a GitHub Release, and uploaded to CurseForge (and Wago once it's configured). If that version is already released, the workflow does nothing.
 
 Pushing a `v*` tag by hand still works too.
